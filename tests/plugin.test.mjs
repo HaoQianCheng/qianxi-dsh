@@ -87,7 +87,7 @@ test("client registers the activation badge above the conversation input", () =>
 });
 
 test("the compatibility patch and bundle mount use the plugin identity", async () => {
-  const patcher = await import("./lib/patcher.js");
+  const patcher = await import("../scripts/lib/patcher.js");
   assert.equal(typeof patcher.applyAllPatches, "function");
   assert.equal(typeof patcher.applyPhase1Patch, "function");
   assert.match(load("cordis.patch.yml").toString("utf8"), /id: fujiang-armor/);

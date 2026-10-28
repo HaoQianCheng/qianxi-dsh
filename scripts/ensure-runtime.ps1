@@ -5,6 +5,7 @@ function Get-FujiangWindowsArchitecture {
     if (-not $Architecture) {
         $Architecture = $env:PROCESSOR_ARCHITEW6432
         if (-not $Architecture) { $Architecture = $env:PROCESSOR_ARCHITECTURE }
+        if (-not $Architecture) { $Architecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString() }
     }
     switch ($Architecture.ToUpperInvariant()) {
         'ARM64' { return 'arm64' }

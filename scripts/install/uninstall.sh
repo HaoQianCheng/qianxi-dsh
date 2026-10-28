@@ -5,10 +5,24 @@ PLUGIN_NAME="fujiang-armor"
 TARGET_PLUGINS=("$PLUGIN_NAME")
 DSH_ROOT="${DSH_HOME:-$HOME/.dsh}"
 PLUGINS_DIR="${DSH_ROOT}/plugins"
+if [[ -n "${DSH_PROFILE:-}" && ( "$DSH_PROFILE" == *'/'* || "$DSH_PROFILE" == *'\'* || "$DSH_PROFILE" == '.' || "$DSH_PROFILE" == '..' ) ]]; then
+  echo 'DSH_PROFILE 必须是单个配置目录名。' >&2; exit 1
+fi
+if [[ -n "${DSH_PROFILE:-}" && ! -f "$DSH_ROOT/profiles/$DSH_PROFILE/package.json" ]]; then
+  echo "未找到指定配置 $DSH_PROFILE，已停止卸载。" >&2; exit 1
+fi
+[[ -d "$DSH_ROOT/profiles" ]] || { echo '未找到 DSH profiles 目录。' >&2; exit 1; }
+KEEP_SHARED=0
+for other in "$DSH_ROOT"/profiles/*; do
+  [[ -f "$other/package.json" ]] || continue
+  if [[ -n "${DSH_PROFILE:-}" && "${other##*/}" != "$DSH_PROFILE" ]]; then
+    if node -e 'const fs=require("fs");const p=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));process.exit(p.dependencies?.["fujiang-armor"] ? 0 : 1)' "$other/package.json"; then KEEP_SHARED=1; fi
+  fi
+done
 
 echo "==> 查找 profile 配置..."
-for name in web default desktop; do
-  pDir="${DSH_ROOT}/profiles/${name}"
+for pDir in "$DSH_ROOT"/profiles/*; do
+  [[ -z "${DSH_PROFILE:-}" || "${pDir##*/}" == "$DSH_PROFILE" ]] || continue
   pkgPath="${pDir}/package.json"
   patchPath="${pDir}/cordis.patch.yml"
 
@@ -49,12 +63,13 @@ NODE
       rm -rf "${pDir}/node_modules/${old}" 2>/dev/null || true
     done
 
-    (cd "${pDir}" && pnpm install >/dev/null 2>&1 || true)
+    (cd "${pDir}" && if command -v pnpm >/dev/null 2>&1; then pnpm install; else npm exec --yes --package=pnpm@10 -- pnpm install; fi)
   fi
 done
 
 for old in "${TARGET_PLUGINS[@]}"; do
-  if [[ -d "${PLUGINS_DIR}/${old}" ]]; then
+  if [[ "$KEEP_SHARED" == 0 && -d "${PLUGINS_DIR}/${old}" ]]; then
+    [[ ! -L "${PLUGINS_DIR}/${old}" ]] || { echo '插件目录是链接，请先检查。' >&2; exit 1; }
     rm -rf "${PLUGINS_DIR}/${old}"
     echo "    [OK] 已删除插件目录: ${PLUGINS_DIR}/${old}"
   fi

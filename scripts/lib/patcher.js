@@ -13,6 +13,10 @@ import { createHash } from "node:crypto";
 
 const isWindows = process.platform === "win32";
 
+function profileNames(profilesRoot) {
+  return process.env.DSH_PROFILE ? [process.env.DSH_PROFILE] : fs.readdirSync(profilesRoot);
+}
+
 export function findDshHome() {
   if (process.env.DSH_HOME && fs.existsSync(process.env.DSH_HOME)) {
     return process.env.DSH_HOME;
@@ -30,7 +34,7 @@ export function findAiBase(dshHome = findDshHome()) {
   const profilesRoot = path.join(dshHome, "profiles");
   if (fs.existsSync(profilesRoot)) {
     try {
-      for (const name of fs.readdirSync(profilesRoot)) {
+      for (const name of profileNames(profilesRoot)) {
         candidates.push(path.join(profilesRoot, name, "node_modules", "@deepseek-ai"));
       }
     } catch {}
@@ -67,7 +71,7 @@ export function listBootstrapFiles(dshHome = findDshHome()) {
   const profilesRoot = path.join(dshHome, "profiles");
   if (fs.existsSync(profilesRoot)) {
     try {
-      for (const name of fs.readdirSync(profilesRoot)) {
+      for (const name of profileNames(profilesRoot)) {
         push(path.join(profilesRoot, name, "node_modules", "@deepseek-ai", "dsh-agent-instructions", "lib", "index.js"));
         push(path.join(profilesRoot, name, "node_modules", "@deepseek-ai", "dsh-agent-instructions", "lib", "bootstrap.js"));
       }
@@ -174,7 +178,7 @@ export function applyAllPatches(options = {}) {
   const cordisResults = [];
   if (fs.existsSync(profilesRoot)) {
     try {
-      for (const name of fs.readdirSync(profilesRoot)) {
+      for (const name of profileNames(profilesRoot)) {
         const pDir = path.join(profilesRoot, name);
         if (name !== "node_modules" && fs.statSync(pDir).isDirectory() && fs.existsSync(path.join(pDir, "package.json"))) {
           cordisResults.push({ profile: name, ...applyCordisPatch(pDir) });

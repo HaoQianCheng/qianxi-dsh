@@ -22,4 +22,4 @@ jobs:
           node-version: '22'
       - run: npm run harness:check
       - run: npm run verify
-      - run: node scripts/scorer_semantics_test.mjs
+      - run: npm run verify:package

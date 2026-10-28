@@ -2,6 +2,9 @@
   "name": "fujiang-armor",
   "version": "0.4.3",
   "description": "富江破甲",
+  "keywords": ["qianxi-dsh", "deepseek", "deepseek-harness", "dsh", "dsh-plugin", "fujiang", "富江", "富江破甲", "提示词", "system-prompt", "npx", "plugin-installer"],
+  "engines": { "node": ">=22" },
+  "bin": { "qianxi-dsh": "./bin/qianxi-dsh.mjs" },
   "license": "CC-BY-NC-SA-4.0",
   "repository": {
     "type": "git",
@@ -25,14 +28,17 @@
     "client.js",
     "cordis.patch.yml",
     "prompts",
-    "tests",
-    "scripts",
+    "bin",
+    "scripts/install",
+    "scripts/ensure-runtime.ps1",
+    "scripts/lib",
     "LICENSE",
     "THIRD-PARTY-NOTICES.md"
   ],
   "scripts": {
-    "harness:check": "node --check index.js && node --check client.js",
-    "verify": "node scripts/verify_plugin.mjs"
+    "harness:check": "node --check index.js && node --check client.js && node --check bin/qianxi-dsh.mjs",
+    "verify": "node --test tests/plugin.test.mjs tests/cli.test.mjs && node tests/scorer.test.mjs",
+    "verify:package": "node tests/package-smoke.mjs"
   },
   "dsh": {
     "id": "fujiang-armor",

@@ -8,7 +8,10 @@ LEGACY_PLUGINS=()
 DSH_ROOT="${DSH_HOME:-$HOME/.dsh}"
 PLUGINS_DIR="$DSH_ROOT/plugins"
 DEST_DIR="$PLUGINS_DIR/$PLUGIN_NAME"
-SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+if [[ -n "${DSH_PROFILE:-}" && ( "$DSH_PROFILE" == *'/'* || "$DSH_PROFILE" == *'\'* || "$DSH_PROFILE" == '.' || "$DSH_PROFILE" == '..' ) ]]; then
+  echo 'DSH_PROFILE 必须是单个配置目录名。' >&2; exit 1
+fi
 
 step() { printf "\n==> %s\n" "$1"; }
 ok()   { printf "    [OK] %s\n" "$1"; }
@@ -22,7 +25,8 @@ find_profile_dirs() {
   if [[ -n "${DSH_PROFILE:-}" ]]; then
     local cand="$profiles_root/$DSH_PROFILE"
     if [[ -f "$cand/package.json" ]]; then echo "$cand"; return 0; fi
-    warn "环境变量 DSH_PROFILE 指向的目录不存在：$cand（继续自动探测）"
+    err "DSH_PROFILE 指定的配置不存在：$cand。已停止，不会改动其他配置。"
+    return 1
   fi
 
   local found=()
@@ -53,18 +57,22 @@ find_profile_dirs() {
 step "检查环境"
 
 [[ -d "$DSH_ROOT" ]] || { err "未找到 DSH 目录：$DSH_ROOT"; exit 1; }
-mapfile -t PROFILE_DIRS < <(find_profile_dirs "$DSH_ROOT/profiles") || {
+PROFILE_OUTPUT="$(find_profile_dirs "$DSH_ROOT/profiles")" || {
   err "未找到 DSH profile 目录（$DSH_ROOT/profiles 下没有含 package.json 的目录）。"
   echo "可通过环境变量指定：DSH_PROFILE=web（或 default）后重新运行。"
   exit 1
 }
+mapfile -t PROFILE_DIRS <<< "$PROFILE_OUTPUT"
 for p in "${PROFILE_DIRS[@]}"; do ok "DSH profile 目录：$p"; done
 
-command -v pnpm >/dev/null 2>&1 || {
-  err "未检测到 pnpm，请先安装：npm install -g pnpm"
-  exit 1
+command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1 || { err '需要 Node.js 22+ 和 npm。'; exit 1; }
+node -e 'if (Number(process.versions.node.split(".")[0]) < 22) process.exit(1)' || { err '需要 Node.js 22+。'; exit 1; }
+run_pnpm() {
+  if command -v pnpm >/dev/null 2>&1; then pnpm "$@";
+  else npm exec --yes --package=pnpm@10 -- pnpm "$@"; fi
 }
-ok "pnpm 可用：$(command -v pnpm)"
+[[ "$SRC_DIR" != "$DEST_DIR" ]] || { err '请从下载包或 npx 运行安装器。'; exit 1; }
+[[ ! -L "$DEST_DIR" ]] || { err '插件目标目录是链接，请先检查。'; exit 1; }
 
 # ---------- [1.5] 清理旧版残留 ----------
 step "检查旧版本"
@@ -88,17 +96,19 @@ if [[ -d "$DEST_DIR" ]]; then
   rm -rf "$DEST_DIR"
 fi
 mkdir -p "$DEST_DIR"
-cp -R "$SRC_DIR"/. "$DEST_DIR"/
-rm -rf "$DEST_DIR/.git" "$DEST_DIR/install.sh" "$DEST_DIR/uninstall.sh" \
-       "$DEST_DIR/install.ps1" "$DEST_DIR/uninstall.ps1" 2>/dev/null || true
+for entry in package.json index.js client.js cordis.patch.yml LICENSE THIRD-PARTY-NOTICES.md prompts scripts bin; do
+  cp -R "$SRC_DIR/$entry" "$DEST_DIR/"
+done
 ok "插件已复制到：$DEST_DIR"
 
 # ---------- [3] 备份 package.json ----------
 step "备份 package.json"
 
 for p in "${PROFILE_DIRS[@]}"; do
-  BAK_PATH="$p/package.json.bak-$(date +%Y%m%d-%H%M%S)"
+  BACKUP_ID="$(node -e 'console.log(Date.now() + "-" + process.pid)')"
+  BAK_PATH="$p/package.json.bak-$BACKUP_ID"
   cp "$p/package.json" "$BAK_PATH"
+  if [[ -f "$p/cordis.patch.yml" ]]; then cp "$p/cordis.patch.yml" "$p/cordis.patch.yml.bak-$BACKUP_ID"; fi
   ok "备份完成：$BAK_PATH"
 done
 
@@ -144,7 +154,11 @@ NODE
   ok "package.json 与 cordis.patch.yml 已更新：$p"
 
   # ---------- [4.5] 自动应用 0.1.6 核心兼容补丁 ----------
-  node -e "import('$SRC_DIR/scripts/lib/patcher.js').then(m => m.applyAllPatches({dshHome: '$DSH_ROOT'})).catch(()=>{})" 2>/dev/null || true
+  node --input-type=module - "$SRC_DIR/scripts/lib/patcher.js" "$DSH_ROOT" <<'NODE'
+import { pathToFileURL } from 'node:url';
+const patcher = await import(pathToFileURL(process.argv[2]).href);
+patcher.applyAllPatches({ dshHome: process.argv[3] });
+NODE
   ok "0.1.6 核心指令过滤与兼容补丁已就绪"
 
   # ---------- [5] pnpm install ----------
@@ -166,7 +180,7 @@ NODE
 
   (
     cd "$p"
-    if ! pnpm install; then
+    if ! run_pnpm install; then
       err "pnpm install 失败，请手动执行：cd $p && pnpm install"
       exit 1
     fi
@@ -183,5 +197,5 @@ cat <<EOF
   目标 profile：$(printf '%s ' "${PROFILE_DIRS[@]}" | sed 's/ *$//')
   最后一步：重启 DeepSeek Harness（Web 版刷新页面 / 桌面版重新打开），新建会话即可生效。
   验证方法：重启后输入框上方应显示绿色状态条「富江破甲已激活」。
-  卸载方法：运行 ./uninstall.sh。
+  卸载方法：运行 node bin/qianxi-dsh.mjs uninstall，或使用 npx 安装命令将 install 改为 uninstall。
 EOF

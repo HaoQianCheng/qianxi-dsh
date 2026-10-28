@@ -3,13 +3,13 @@ setlocal
 title Fujiang Armor Uninstaller
 echo.
 echo Uninstalling Fujiang Armor...
-if exist "%~dp0uninstall.ps1" goto run
-echo ERROR: uninstall.ps1 was not found next to this launcher.
+if exist "%~dp0scripts\install\uninstall.ps1" goto run
+echo ERROR: scripts\install\uninstall.ps1 was not found. Extract the complete ZIP.
 set "DSH_UNINSTALL_RESULT=2"
 goto finished
 
 :run
-"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0uninstall.ps1"
+"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\install\uninstall.ps1" %*
 set "DSH_UNINSTALL_RESULT=%ERRORLEVEL%"
 
 :finished
