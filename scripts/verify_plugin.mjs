@@ -8,7 +8,8 @@ import * as plugin from "../index.js";
 const root = new URL("../", import.meta.url);
 const load = (file) => readFileSync(new URL(file, root));
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
-const expectedHash = "ef013b398da81504fa452ea96bc5510f3da8b314cdc33eb20dd2ce0ec90b397c";
+// 接续基线 ab86ddc 中三个提示词文件的 SHA256；.gitattributes 固定 LF 换行。
+const expectedHash = "dfad664948945d39b9c9058c40258c35355781926307102d1980fb1537f879d9";
 const pkg = JSON.parse(load("package.json"));
 
 test("prompt assets preserve the supplied bytes", () => {

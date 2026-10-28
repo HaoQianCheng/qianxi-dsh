@@ -3,6 +3,14 @@
   "version": "0.4.3",
   "description": "富江破甲",
   "license": "CC-BY-NC-SA-4.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HaoQianCheng/qianxi-dsh.git"
+  },
+  "homepage": "https://github.com/HaoQianCheng/qianxi-dsh#readme",
+  "bugs": {
+    "url": "https://github.com/HaoQianCheng/qianxi-dsh/issues"
+  },
   "type": "module",
   "main": "./index.js",
   "exports": {

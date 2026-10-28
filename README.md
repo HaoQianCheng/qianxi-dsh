@@ -1,8 +1,14 @@
-# 富江DSH完美破甲
+# qianxi-dsh
+
+由 [HaoQianCheng](https://github.com/HaoQianCheng) 接续维护的 DSH 本地插件，基于 [c3cvld7aag/fujiang-dsh](https://github.com/c3cvld7aag/fujiang-dsh)，保留其完整 Git 提交历史及原有功能。
+
+本仓库地址：[HaoQianCheng/qianxi-dsh](https://github.com/HaoQianCheng/qianxi-dsh)。问题反馈请提交至 [Issues](https://github.com/HaoQianCheng/qianxi-dsh/issues)。
 
 富江破甲是一个用于 DSH 的本地插件，内置提示词规则，提供 Windows 一键注入和一键卸载。插件加载后，会在对话输入框上方显示「富江破甲已激活」。
 
 当前版本：`0.4.3`。插件标识：`fujiang-armor`。
+
+`qianxi-dsh` 是接续维护的仓库名称。为兼容已有安装，插件包名、配置标识、界面名称「富江破甲」和激活词「富江」继续沿用原值。
 
 ## 功能
 
@@ -20,7 +26,7 @@
 
 ## 一键安装
 
-1. 从本项目的发布页面下载 ZIP 安装包。也可以通过仓库页面的「Code → Download ZIP」下载源码。
+1. 从本仓库的「Code → Download ZIP」[下载最新源码](https://github.com/HaoQianCheng/qianxi-dsh/archive/refs/heads/main.zip)。完整解压后即可使用安装脚本。
 2. 完整解压 ZIP，打开包含 `点我一键注入.bat` 的项目文件夹。
 3. 完全退出 DSH。
 4. 双击 `点我一键注入.bat`。
@@ -58,3 +64,23 @@
 已核对 [dsh-purge 官方发布页](https://github.com/YuJunZhiXue/dsh-purge/releases)：1.1.52 在已应用补丁戳缺少 `sha` 时会把状态判为未对齐，并在启动时重打补丁、请求重启；上游从 1.1.53 起加入了空戳修复。若你使用 `dsh-purge` 1.1.52 并遇到反复重启，优先按其官方说明升级到 1.1.53 或更新版本，再重新启动 DSH。不要把空 `sha` 直接填成任意值；版本戳不匹配或宿主补丁未实际写入时，手动补戳可能掩盖故障。
 
 本插件没有重启 DSH 的代码。兼容性补丁现在只在安装过程中应用；启动插件不会再重复写入宿主或 profile 文件。此次改动可避免富江插件自身在每次启动时触发写入，但不会替代 `dsh-purge` 的上游修复。若升级后仍循环，请保留相关启动日志并确认实际启用的 `dsh-purge` 版本与 profile。
+
+## 开发与验证
+
+使用 Node.js 22 或更新版本。以下本地检查无需安装 npm 依赖：
+
+```sh
+git clone https://github.com/HaoQianCheng/qianxi-dsh.git
+cd qianxi-dsh
+npm run harness:check
+npm run verify
+node scripts/scorer_semantics_test.mjs
+```
+
+GitHub Actions 会在 Windows 和 Linux 上执行上述检查。它们验证代码语法、插件注册、客户端状态条及评分器逻辑；实际 DSH 安装和模型回复效果仍需在目标环境验证。
+
+## 来源与许可证
+
+本仓库从 `c3cvld7aag/fujiang-dsh` 的提交 `ab86ddcd169f0f13bc74923b6ed95eda55224931` 接续维护，保留原有提交及 `v0.4.3` 标签。该项目包含改编自 Minglink 的 `dsh-infinite-gen-4` 的内容。
+
+沿用原项目声明的 CC BY-NC-SA 4.0，完整保留随源代码提供的 [LICENSE](LICENSE) 及其附带声明。作者、来源、许可链接及本仓库的修改记录见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
